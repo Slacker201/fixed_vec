@@ -108,8 +108,18 @@ impl<T, Policy: DropPolicy<T>> FixedVec<T, Policy> {
         let new_ptr = unsafe {
             realloc(self.ptr as *mut u8, layout, self.len()) as *mut T
         };
+        if new_ptr.is_null() {
+            std::alloc::handle_alloc_error(layout)
+        }
         let slice = ptr::slice_from_raw_parts_mut(new_ptr, self.len());
         unsafe { Box::from_raw(slice) }
+    }
+
+    pub fn to_vec(self) -> Vec<T> {
+        let disabled_fixed_vec = ManuallyDrop::new(self);
+        let (ptr, len, capacity) = (disabled_fixed_vec.ptr, disabled_fixed_vec.len, disabled_fixed_vec.capacity);
+
+        unsafe { Vec::from_raw_parts(ptr, len, capacity) }
     }
 }
 
