@@ -1,5 +1,5 @@
 use core::slice;
-use std::{alloc::{Layout, alloc}, marker::PhantomData, mem::{ManuallyDrop, MaybeUninit}, ops::Deref};
+use std::{alloc::{Layout, alloc, dealloc, realloc}, marker::PhantomData, mem::{ManuallyDrop, MaybeUninit}, ops::Deref, ptr};
 
 use crate::fixed_vec::owner_tag::{DropPolicy, Owned, Reference};
 
@@ -93,6 +93,23 @@ impl<T, Policy: DropPolicy<T>> FixedVec<T, Policy> {
                 &mut *self.ptr.add(idx)
             }
         )
+    }
+    pub fn to_boxed_slice(self) -> Box<[T]> {
+        if const { size_of::<T>() == 0 } {
+            return unsafe { Box::from_raw(ptr::slice_from_raw_parts_mut(ptr::dangling_mut(), 0)) }
+        }
+        let layout = Layout::array::<T>(self.capacity()).expect("Capacity too high");
+        if self.len() == 0 {
+            unsafe {
+                dealloc(self.ptr as *mut u8, layout);
+            }
+            return unsafe { Box::from_raw(ptr::slice_from_raw_parts_mut(ptr::dangling_mut(), 0)) }
+        }
+        let new_ptr = unsafe {
+            realloc(self.ptr as *mut u8, layout, self.len()) as *mut T
+        };
+        let slice = ptr::slice_from_raw_parts_mut(new_ptr, self.len());
+        unsafe { Box::from_raw(slice) }
     }
 }
 
