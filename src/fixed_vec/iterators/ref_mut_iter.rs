@@ -9,13 +9,16 @@ pub struct FixedVecRefMutIter<'a, T> {
     _lifetime: PhantomData<&'a T>,
 }
 
-
 impl<'a, T> FixedVecRefMutIter<'a, T> {
     pub fn new(ptr: *mut T, item_count: usize) -> Self {
-        Self { ptr, idx: 0, item_count, _lifetime: PhantomData }
+        Self {
+            ptr,
+            idx: 0,
+            item_count,
+            _lifetime: PhantomData,
+        }
     }
 }
-
 
 impl<'a, T> Iterator for FixedVecRefMutIter<'a, T> {
     type Item = &'a mut T;
@@ -28,7 +31,7 @@ impl<'a, T> Iterator for FixedVecRefMutIter<'a, T> {
         if const { size_of::<T>() == 0 } {
             return unsafe { Some(&mut *std::ptr::NonNull::dangling().as_ptr()) };
         }
-        Some(unsafe {&mut *self.ptr.add(self.idx-1) })
+        Some(unsafe { &mut *self.ptr.add(self.idx - 1) })
     }
 }
 

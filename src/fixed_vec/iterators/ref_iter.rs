@@ -11,7 +11,12 @@ pub struct FixedVecRefIter<'a, T> {
 
 impl<'a, T> FixedVecRefIter<'a, T> {
     pub fn new(ptr: *const T, item_count: usize) -> Self {
-        Self { ptr, idx: 0, item_count, _lifetime: PhantomData }
+        Self {
+            ptr,
+            idx: 0,
+            item_count,
+            _lifetime: PhantomData,
+        }
     }
 }
 
@@ -24,9 +29,9 @@ impl<'a, T: 'a> Iterator for FixedVecRefIter<'a, T> {
         }
         self.idx += 1;
         if const { size_of::<T>() == 0 } {
-            return unsafe { Some( &*std::ptr::NonNull::dangling().as_ptr() ) }
+            return unsafe { Some(&*std::ptr::NonNull::dangling().as_ptr()) };
         }
-        Some(unsafe { &*self.ptr.add(self.idx-1) })
+        Some(unsafe { &*self.ptr.add(self.idx - 1) })
     }
 }
 

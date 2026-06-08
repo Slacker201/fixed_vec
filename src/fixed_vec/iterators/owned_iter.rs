@@ -1,4 +1,8 @@
-use std::{alloc::{Layout, dealloc}, mem::ManuallyDrop, ptr::drop_in_place};
+use std::{
+    alloc::{Layout, dealloc},
+    mem::ManuallyDrop,
+    ptr::drop_in_place,
+};
 
 use crate::fixed_vec::{FixedVec, owner_tag::Owned};
 
@@ -11,7 +15,12 @@ pub struct FixedVecOwnedIter<T> {
 
 impl<T> FixedVecOwnedIter<T> {
     pub fn new(ptr: *mut T, len: usize, capacity: usize) -> Self {
-        Self { ptr, idx: 0, item_count: len, capacity }
+        Self {
+            ptr,
+            idx: 0,
+            item_count: len,
+            capacity,
+        }
     }
 }
 
@@ -24,19 +33,17 @@ impl<T> Iterator for FixedVecOwnedIter<T> {
         }
         self.idx += 1;
         if const { size_of::<T>() == 0 } {
-            return Some(unsafe { std::mem::zeroed() })
+            return Some(unsafe { std::mem::zeroed() });
         }
 
-        Some(unsafe { self.ptr.add(self.idx-1).read() })
+        Some(unsafe { self.ptr.add(self.idx - 1).read() })
     }
 }
 
 impl<T> Drop for FixedVecOwnedIter<T> {
     fn drop(&mut self) {
         for offset in self.idx..self.item_count {
-            unsafe {
-                drop_in_place(self.ptr.add(offset))
-            };
+            unsafe { drop_in_place(self.ptr.add(offset)) };
         }
         if const { size_of::<T>() > 0 } {
             let layout = Layout::array::<T>(self.capacity).expect("Capacity too large");

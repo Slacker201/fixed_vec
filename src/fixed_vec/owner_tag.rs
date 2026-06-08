@@ -1,4 +1,8 @@
-use std::{alloc::{Layout, dealloc}, marker::PhantomData, ptr::drop_in_place};
+use std::{
+    alloc::{Layout, dealloc},
+    marker::PhantomData,
+    ptr::drop_in_place,
+};
 
 use crate::fixed_vec::FixedVec;
 
@@ -14,7 +18,7 @@ impl<T> DropPolicy<T> for Owned {
         for i in 0..len {
             unsafe { drop_in_place(ptr.add(i)) };
         }
-        if const{ size_of::<T>() > 0} {
+        if const { size_of::<T>() > 0 } {
             let layout = Layout::array::<T>(fixed_vec.capacity()).expect("capacity too big");
             unsafe { dealloc(ptr as *mut u8, layout) };
         }

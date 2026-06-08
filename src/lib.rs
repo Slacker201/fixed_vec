@@ -1,15 +1,9 @@
-use crate::fixed_vec::FixedVec;
-
 mod fixed_vec;
 
-
-
-#[test]
-fn q() {
-    let mut fv = FixedVec::new(69);
-    fv.push(());
-    fv.push(());
-    for item in fv {
-        println!("1")
-    }
-}
+pub use fixed_vec::{
+    FixedVec,
+    iterators::{
+        owned_iter::FixedVecOwnedIter, ref_iter::FixedVecRefIter, ref_mut_iter::FixedVecRefMutIter,
+    },
+    owner_tag::DropPolicy,
+};
