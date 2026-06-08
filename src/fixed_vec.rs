@@ -73,4 +73,24 @@ impl<T, D: MemoryPolicy<T>> FixedVec<T, D> {
             Some(self.ptr.add(self.len).read())
         }
     }
+    pub fn get(&self, idx: usize) -> Option<&T> {
+        if self.len >= idx {
+            return None;
+        }
+        Some(
+            unsafe {
+                &*self.ptr.add(idx)
+            }
+        )
+    }
+    pub fn get_mut(&mut self, idx: usize) -> Option<&mut T> {
+        if self.len >= idx {
+            return None;
+        }
+        Some(
+            unsafe {
+                &mut *self.ptr.add(idx)
+            }
+        )
+    }
 }
