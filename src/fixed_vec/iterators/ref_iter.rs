@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::fixed_vec::{FixedVec, owner_tag::MemoryPolicy};
+use crate::fixed_vec::{FixedVec, owner_tag::DropPolicy};
 
 pub struct FixedVecRefIter<'a, T> {
     ptr: *const T,
@@ -30,7 +30,7 @@ impl<'a, T: 'a> Iterator for FixedVecRefIter<'a, T> {
     }
 }
 
-impl<'a, T: 'a, D: MemoryPolicy<T>> IntoIterator for &'a FixedVec<T, D> {
+impl<'a, T: 'a, Policy: DropPolicy<T>> IntoIterator for &'a FixedVec<T, Policy> {
     type Item = &'a T;
 
     type IntoIter = FixedVecRefIter<'a, T>;

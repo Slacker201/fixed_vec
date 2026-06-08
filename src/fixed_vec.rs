@@ -1,6 +1,7 @@
-use std::{alloc::{Layout, alloc}, marker::PhantomData, mem::MaybeUninit};
+use core::slice;
+use std::{alloc::{Layout, alloc}, marker::PhantomData, mem::{ManuallyDrop, MaybeUninit}, ops::Deref};
 
-use crate::fixed_vec::owner_tag::{MemoryPolicy, Owned, Reference};
+use crate::fixed_vec::owner_tag::{DropPolicy, Owned, Reference};
 
 pub mod owner_tag;
 
@@ -8,11 +9,11 @@ pub mod owner_tag;
 pub(crate) mod iterators;
 
 
-pub struct FixedVec<T, D: MemoryPolicy<T> = Owned> {
+pub struct FixedVec<T, Policy: DropPolicy<T> = Owned> {
     ptr: *mut T,
     capacity: usize,
     len: usize,
-    _drop_policy: PhantomData<D>
+    _drop_policy: PhantomData<Policy>
 }
 
 impl<'a, T> FixedVec<T, Reference<'a>> {
@@ -38,13 +39,13 @@ impl<T> FixedVec<T, Owned> {
 }
 
 
-impl<T, D: MemoryPolicy<T>> Drop for FixedVec<T, D> {
+impl<T, Policy: DropPolicy<T>> Drop for FixedVec<T, Policy> {
     fn drop(&mut self) {
-        D::drop_fixed_vec(self);
+        Policy::drop_fixed_vec(self);
     }
 }
 
-impl<T, D: MemoryPolicy<T>> FixedVec<T, D> {
+impl<T, Policy: DropPolicy<T>> FixedVec<T, Policy> {
     pub fn ptr(&self) -> *const T {
         self.ptr as *const T
     }
@@ -92,5 +93,55 @@ impl<T, D: MemoryPolicy<T>> FixedVec<T, D> {
                 &mut *self.ptr.add(idx)
             }
         )
+    }
+}
+
+
+impl<T, Policy: DropPolicy<T>> Deref for FixedVec<T, Policy> {
+    type Target = [T];
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { &slice::from_raw_parts_mut(self.ptr, self.len)[..] }
+    }
+}
+
+
+impl<T> From<Box<[T]>> for FixedVec<T, Owned> {
+    fn from(value: Box<[T]>) -> Self {
+        let disabled_box = ManuallyDrop::new(value);
+        let ptr = disabled_box.as_ptr() as *mut T;
+        let len = disabled_box.len();
+
+        Self { ptr, capacity: len, len, _drop_policy: PhantomData }
+    }
+}
+impl<T> From<Box<[MaybeUninit<T>]>> for FixedVec<T, Owned> {
+    fn from(value: Box<[MaybeUninit<T>]>) -> Self {
+        let disabled_box = ManuallyDrop::new(value);
+        let ptr = disabled_box.as_ptr() as *mut T;
+        let len = disabled_box.len();
+
+        Self { ptr, capacity: len, len: 0, _drop_policy: PhantomData }
+    }
+}
+
+impl<T> From<(Box<[MaybeUninit<T>]>, usize)> for FixedVec<T, Owned> {
+    fn from(value: (Box<[MaybeUninit<T>]>, usize)) -> Self {
+        let disabled_box = ManuallyDrop::new(value.0);
+        let ptr = disabled_box.as_ptr() as *mut T;
+        let len = disabled_box.len();
+
+        Self { ptr, capacity: len, len: value.1, _drop_policy: PhantomData }
+    }
+}
+
+impl<T> From<Vec<T>> for FixedVec<T, Owned> {
+    fn from(value: Vec<T>) -> Self {
+        let disabled_vec = ManuallyDrop::new(value);
+        let ptr = disabled_vec.as_ptr() as *mut T;
+        let capacity = disabled_vec.capacity();
+        let len = disabled_vec.len();
+
+        Self { ptr, capacity, len, _drop_policy: PhantomData }
     }
 }
