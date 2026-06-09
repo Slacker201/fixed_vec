@@ -6,10 +6,11 @@ use std::{
 
 use crate::fixed_vec::FixedVec;
 
+/// The trait for drop policies
 pub trait DropPolicy<T>: Sized {
     fn drop_fixed_vec(fixed_vec: &mut FixedVec<T, Self>);
 }
-
+/// Represents `FixedVec` owning the memory
 pub struct Owned;
 impl<T> DropPolicy<T> for Owned {
     fn drop_fixed_vec(fixed_vec: &mut FixedVec<T, Self>) {
@@ -24,6 +25,7 @@ impl<T> DropPolicy<T> for Owned {
         }
     }
 }
+/// Represents `FixedVec` borrowing the memory
 pub struct Reference<'a>(PhantomData<&'a ()>);
 impl<'a, T> DropPolicy<T> for Reference<'a> {
     fn drop_fixed_vec(_fixed_vec: &mut FixedVec<T, Self>) {
