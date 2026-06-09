@@ -1,7 +1,17 @@
 use std::marker::PhantomData;
 
 use crate::fixed_vec::{FixedVec, owner_tag::DropPolicy};
-
+/// The iterator for `FixedVec` that yields immutabler references
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use fixed_vec::FixedVec;
+/// 
+/// let fv: FixedVec<_> = vec![1, 2, 3].into();
+/// 
+/// assert_eq!([&1, &2, &3], *fv.iter().collect::<Vec<_>>());
+/// ```
 pub struct FixedVecRefIter<'a, T> {
     ptr: *const T,
     idx: usize,
