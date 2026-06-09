@@ -75,7 +75,7 @@ impl<'a, T> FixedVec<T, Reference<'a>> {
     /// use std::mem::MaybeUninit;
     /// let mut slice = [MaybeUninit::new(1), MaybeUninit::new(2), MaybeUninit::uninit(), MaybeUninit::uninit()];
     /// 
-    /// let fv = FixedVec::new_from_slice(&mut slice, 2);
+    /// let fv = unsafe { FixedVec::new_from_slice(&mut slice, 2) };
     /// assert_eq!(fv.get(0), Some(&1));
     /// ```
     pub unsafe fn new_from_slice(r: &'a mut [MaybeUninit<T>], len: usize) -> Self {
@@ -203,7 +203,7 @@ impl<T, Policy: DropPolicy<T>> FixedVec<T, Policy> {
     /// 
     /// let fv = FixedVec::new(4);
     /// 
-    /// let _ptr = fv.ptr();
+    /// let _ptr: *const i32 = fv.ptr();
     /// ```
     pub fn ptr(&self) -> *const T {
         self.ptr as *const T
