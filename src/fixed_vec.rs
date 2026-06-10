@@ -82,7 +82,7 @@ impl<'a, T> FixedVec<T, Reference<'a>> {
         let ptr = r.as_ptr() as *mut T;
         Self {
             ptr,
-            capacity: len,
+            capacity: r.len(),
             len,
             _drop_policy: PhantomData,
         }
