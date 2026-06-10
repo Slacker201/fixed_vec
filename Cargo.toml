@@ -2,6 +2,9 @@
 name = "fixed_vec"
 version = "0.1.0"
 edition = "2024"
-licence = ["mit"]
+license = "MIT"
+authors = ["Slacker201 <slacker1234567809@gmail.com>"]
+repository = "https://github.com/slacker201/fixed_vec"
+documentation = "https://docs.rs/fixed_vec"
 
 [dependencies]
