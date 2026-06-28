@@ -1,6 +1,7 @@
 use core::slice;
 use std::{
     alloc::{Layout, alloc, dealloc, realloc},
+    fmt::{Debug, write},
     marker::PhantomData,
     mem::{ManuallyDrop, MaybeUninit},
     ops::{Deref, DerefMut},
@@ -13,16 +14,16 @@ pub mod owner_tag;
 
 pub mod iterators;
 /// The fixed vector struct
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```rust
 /// use fixed_vec::FixedVec;
-/// 
+///
 /// let mut fv = FixedVec::new(2);
 /// assert_eq!(None, fv.push(1));
 /// assert_eq!(None, fv.push(2));
-/// 
+///
 /// assert_eq!(Some(2), fv.pop());
 /// assert_eq!(Some(1), fv.pop());
 /// ```
@@ -35,19 +36,19 @@ pub struct FixedVec<T, Policy: DropPolicy<T> = Owned> {
 
 impl<'a, T> FixedVec<T, Reference<'a>> {
     /// Creates a new `FixedVec` from raw parts, with the Reference drop policy
-    /// 
+    ///
     /// # Safety
     /// This is unsafe if you do not follow rust's pointer aliasing rules
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// use fixed_vec::FixedVec;
     /// let layout = std::alloc::Layout::array::<i32>(2).unwrap();
     /// let ptr = unsafe { std::alloc::alloc(layout) as *mut i32 };
     /// let capacity = 02;
     /// let len = 0;
-    /// 
+    ///
     /// let mut fv = unsafe { FixedVec::new_from_parts(ptr, capacity, len) };
     /// assert_eq!(None, fv.push(1));
     /// assert_eq!(None, fv.push(2));
@@ -64,17 +65,17 @@ impl<'a, T> FixedVec<T, Reference<'a>> {
     }
 
     /// Creates a new `FixedVec` using a mutable reference to a slice
-    /// 
+    ///
     /// # Safety
     /// This is unsafe if you pass the incorrect length
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// use fixed_vec::FixedVec;
     /// use std::mem::MaybeUninit;
     /// let mut slice = [MaybeUninit::new(1), MaybeUninit::new(2), MaybeUninit::uninit(), MaybeUninit::uninit()];
-    /// 
+    ///
     /// let fv = unsafe { FixedVec::new_from_slice(&mut slice, 2) };
     /// assert_eq!(fv.get(0), Some(&1));
     /// ```
@@ -91,19 +92,19 @@ impl<'a, T> FixedVec<T, Reference<'a>> {
 
 impl<T> FixedVec<T, Owned> {
     /// Creates a new FixedVec with a specified capacity and zero items
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// use fixed_vec::FixedVec;
-    /// 
+    ///
     /// let mut fv = FixedVec::new(4);
-    /// 
+    ///
     /// assert_eq!(4, fv.capacity());
     /// assert_eq!(0, fv.len());
-    /// 
+    ///
     /// assert_eq!(None, fv.push(0));
-    /// 
+    ///
     /// assert_eq!(fv.get(0), Some(&0));
     /// ```
     pub fn new(capacity: usize) -> Self {
@@ -121,18 +122,18 @@ impl<T> FixedVec<T, Owned> {
     }
 
     /// Converts the `FixedVec` into a boxed slice
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// use fixed_vec::FixedVec;
-    /// 
+    ///
     /// let mut fv = FixedVec::new(4);
-    /// 
+    ///
     /// assert_eq!(None, fv.push(1));
-    /// 
+    ///
     /// let b = fv.to_boxed_slice();
-    /// 
+    ///
     /// assert_eq!(b.len(), 1);
     /// assert_eq!(b.get(0), Some(&1));
     /// assert_eq!(b.get(1), None);
@@ -149,7 +150,8 @@ impl<T> FixedVec<T, Owned> {
             }
             return unsafe { Box::from_raw(ptr::slice_from_raw_parts_mut(ptr::dangling_mut(), 0)) };
         }
-        let new_ptr = unsafe { realloc(disabled_self.ptr as *mut u8, layout, disabled_self.len()) as *mut T };
+        let new_ptr =
+            unsafe { realloc(disabled_self.ptr as *mut u8, layout, disabled_self.len()) as *mut T };
         if new_ptr.is_null() {
             std::alloc::handle_alloc_error(layout)
         }
@@ -158,18 +160,18 @@ impl<T> FixedVec<T, Owned> {
     }
 
     /// Converts the `FixedVec` into a vector
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// use fixed_vec::FixedVec;
-    /// 
+    ///
     /// let mut fv = FixedVec::new(4);
-    /// 
+    ///
     /// assert_eq!(None, fv.push(1));
-    /// 
+    ///
     /// let v = fv.to_vec();
-    /// 
+    ///
     /// assert_eq!(v.capacity(), 4);
     /// assert_eq!(v.len(), 1);
     /// assert_eq!(v.get(0), Some(&1));
@@ -195,40 +197,40 @@ impl<T, Policy: DropPolicy<T>> Drop for FixedVec<T, Policy> {
 
 impl<T, Policy: DropPolicy<T>> FixedVec<T, Policy> {
     /// Returns the pointer
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// use fixed_vec::FixedVec;
-    /// 
+    ///
     /// let fv = FixedVec::new(4);
-    /// 
+    ///
     /// let _ptr: *const i32 = fv.ptr();
     /// ```
     pub fn ptr(&self) -> *const T {
         self.ptr as *const T
     }
     /// Returns the capacity
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// use fixed_vec::FixedVec;
     /// let fv = FixedVec::<i32>::new(4);
-    /// 
+    ///
     /// assert_eq!(fv.capacity(), 4);
     /// ```
     pub fn capacity(&self) -> usize {
         self.capacity
     }
     /// Returns the length
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// use fixed_vec::FixedVec;
     /// let mut fv = FixedVec::new(4);
-    /// 
+    ///
     /// assert_eq!(fv.len(), 0);
     /// assert_eq!(fv.push(1), None);
     /// assert_eq!(fv.len(), 1);
@@ -236,17 +238,17 @@ impl<T, Policy: DropPolicy<T>> FixedVec<T, Policy> {
     pub fn len(&self) -> usize {
         self.len
     }
-    /// Pushes a value into the vector. 
-    /// 
+    /// Pushes a value into the vector.
+    ///
     /// # Returns
     /// Returns the item if there is no more space
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// use fixed_vec::FixedVec;
     /// let mut fv = FixedVec::new(2);
-    /// 
+    ///
     /// assert_eq!(fv.push(1), None);
     /// assert_eq!(fv.push(2), None);
     /// assert_eq!(fv.push(3), Some(3));
@@ -262,16 +264,16 @@ impl<T, Policy: DropPolicy<T>> FixedVec<T, Policy> {
         None
     }
     /// Pops a value from the vector
-    /// 
+    ///
     /// # Returns
     /// Returns `None` if there is no item left
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// use fixed_vec::FixedVec;
     /// let mut fv = FixedVec::new(2);
-    /// 
+    ///
     /// assert_eq!(fv.push(1), None);
     /// assert_eq!(fv.push(2), None);
     /// assert_eq!(fv.pop(), Some(2));
@@ -286,18 +288,18 @@ impl<T, Policy: DropPolicy<T>> FixedVec<T, Policy> {
         unsafe { Some(self.ptr.add(self.len).read()) }
     }
     /// Returns a reference to the value at idx, if available
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// use fixed_vec::FixedVec;
-    /// 
+    ///
     /// let fv: FixedVec<_> = vec![1, 2, 3].into();
-    /// 
+    ///
     /// assert_eq!(fv.get(0), Some(&1));
     /// assert_eq!(fv.get(1), Some(&2));
     /// assert_eq!(fv.get(2), Some(&3));
-    /// 
+    ///
     /// assert_eq!(fv.get(69), None);
     /// ```
     pub fn get(&self, idx: usize) -> Option<&T> {
@@ -308,48 +310,48 @@ impl<T, Policy: DropPolicy<T>> FixedVec<T, Policy> {
     }
     /// # Summary
     /// Returns a mutable reference to the value at idx, if available
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```rust
     /// use fixed_vec::FixedVec;
-    /// 
+    ///
     /// let mut fv: FixedVec<_> = vec![1, 2, 3].into();
-    /// 
+    ///
     /// assert_eq!(fv.get_mut(0), Some(&mut 1));
-    /// 
+    ///
     /// assert_eq!(fv.get_mut(69), None);
-    /// 
+    ///
     /// *fv.get_mut(0).unwrap() += 5;
-    /// 
+    ///
     /// assert_eq!(fv.get(0), Some(&6));
     /// ```
-    /// 
+    ///
     /// # Effects
     /// 1. Returns a mutable reference to the value at the index
     /// 2. Returns `None` if the index is out of bounds
-    /// 
+    ///
     /// # Effect Examples
     /// ## 1: Mutable Reference
     /// ```rust
     /// use fixed_vec::FixedVec;
-    /// 
+    ///
     /// let mut fv: FixedVec<_> = vec![1, 2, 3].into();
-    /// 
+    ///
     /// *fv.get_mut(0).unwrap() += 1;
-    /// 
+    ///
     /// assert_eq!(Some(&2), fv.get(0));
     /// ```
-    /// 
+    ///
     /// ## 2: Return None
     /// ```rust
     /// use fixed_vec::FixedVec;
-    /// 
+    ///
     /// let mut fv: FixedVec<_> = vec![1, 2, 3].into();
-    /// 
+    ///
     /// assert!(fv.get_mut(255).is_none());
     /// ```
-    /// 
+    ///
     pub fn get_mut(&mut self, idx: usize) -> Option<&mut T> {
         if idx >= self.len {
             return None;
@@ -358,46 +360,46 @@ impl<T, Policy: DropPolicy<T>> FixedVec<T, Policy> {
     }
     /// # Summary
     /// Pushes a value without bounds checking
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```rust
     /// use fixed_vec::FixedVec;
-    /// 
+    ///
     /// let mut fv = FixedVec::new(16);
-    /// 
+    ///
     /// for i in 0..32 {
     ///     unsafe {
     ///         fv.push_unchecked(i);
     ///     }
     /// }
-    /// 
+    ///
     /// assert_eq!(fv.len(), 32);
     /// assert_eq!(fv.capacity(), 16);
     /// ```
-    /// 
+    ///
     /// # Effects
     /// 1. Writes the selected value to the vector
     /// 2. Increments len
-    /// 
+    ///
     /// # Effect Examples
     /// ## 1: Writing Value
     /// ```rust
     /// use fixed_vec::FixedVec;
-    /// 
+    ///
     /// let mut fv = FixedVec::new(4);
     /// unsafe { fv.push_unchecked(1); }
-    /// 
+    ///
     /// assert_eq!(fv.get(0), Some(&1));
     /// ```
-    /// 
+    ///
     /// ## 2: Increments len
     /// ```rust
     /// use fixed_vec::FixedVec;
-    /// 
+    ///
     /// let mut fv = FixedVec::new(4);
     /// unsafe { fv.push_unchecked(1); }
-    /// 
+    ///
     /// assert_eq!(fv.len(), 1);
     /// ```
     pub unsafe fn push_unchecked(&mut self, item: T) {
@@ -482,9 +484,58 @@ impl<T> From<Vec<T>> for FixedVec<T, Owned> {
     }
 }
 
+struct OwnedDebug;
 
-impl<T: std::fmt::Debug, D: DropPolicy<T>> std::fmt::Debug for FixedVec<T, D> {
+impl Debug for OwnedDebug {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("FixedVec").field("ptr", &self.ptr).field("capacity", &self.capacity).field("len", &self.len).field("_drop_policy", &self._drop_policy).finish()
+        f.debug_struct("Owned").finish()
+    }
+}
+
+struct ReferenceDebug;
+
+impl Debug for ReferenceDebug {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Reference").finish()
+    }
+}
+
+struct ItemDebug<'a, D: DropPolicy<T>, T: Debug> {
+    fv: &'a FixedVec<T, D>,
+}
+
+impl<'a, D: DropPolicy<T>, T: Debug> Debug for ItemDebug<'a, D, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write(f, format_args!("["))?;
+
+        let len = self.fv.len();
+
+        for item in self.fv.iter().enumerate() {
+            if item.0 + 1 == len {
+                write!(f, "{:?}", item.1)?;
+            } else {
+                write!(f, "{:?}, ", item.1)?;
+            }
+        }
+
+        write!(f, "]")
+    }
+}
+
+impl<T: std::fmt::Debug> std::fmt::Debug for FixedVec<T, Owned> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FixedVec")
+            .field("DropPolicy", &OwnedDebug)
+            .field("items", &ItemDebug { fv: &self })
+            .finish()
+    }
+}
+
+impl<'a, T: std::fmt::Debug> std::fmt::Debug for FixedVec<T, Reference<'a>> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FixedVec")
+            .field("DropPolicy", &ReferenceDebug)
+            .field("items", &ItemDebug { fv: &self })
+            .finish()
     }
 }

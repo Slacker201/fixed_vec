@@ -2,16 +2,16 @@ use std::marker::PhantomData;
 
 use crate::fixed_vec::{FixedVec, owner_tag::DropPolicy};
 /// The iterator for `FixedVec` that yields immutabler references
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```rust
 /// use fixed_vec::FixedVec;
-/// 
+///
 /// let mut fv: FixedVec<_> = vec![1, 2, 3].into();
-/// 
+///
 /// fv.iter_mut().for_each(|v| *v += 1);
-/// 
+///
 /// let slice: &[i32] = &fv;
 /// assert_eq!(&[2, 3, 4], slice);
 /// ```

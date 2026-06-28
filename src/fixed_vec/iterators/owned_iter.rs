@@ -7,14 +7,14 @@ use std::{
 use crate::fixed_vec::{FixedVec, owner_tag::Owned};
 
 /// The iterator for `FixedVec` that yields owned values
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```rust
 /// use fixed_vec::FixedVec;
-/// 
+///
 /// let fv: FixedVec<_> = vec![1, 2, 3].into();
-/// 
+///
 /// assert_eq!([1, 2, 3], *fv.into_iter().collect::<Vec<_>>());
 /// ```
 pub struct FixedVecOwnedIter<T> {

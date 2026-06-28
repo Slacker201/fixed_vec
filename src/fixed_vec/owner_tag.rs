@@ -25,6 +25,7 @@ impl<T> DropPolicy<T> for Owned {
         }
     }
 }
+
 /// Represents `FixedVec` borrowing the memory
 pub struct Reference<'a>(PhantomData<&'a ()>);
 impl<'a, T> DropPolicy<T> for Reference<'a> {
